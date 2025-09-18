@@ -276,6 +276,7 @@ app.post('/api/orders/multi', authMiddleware, (req, res) => {
     return res.status(400).json({ error: 'Informe cliente e itens.' });
   }
 
+  
   db.run(
     `INSERT INTO orders (user_id, client_id, status, payment_status) VALUES (?, ?, ?, ?)`,
     [req.session.userId, client_id, status || 'Pendente', 'Pendente'],
