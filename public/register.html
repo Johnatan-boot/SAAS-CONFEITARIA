@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro - Confeitaria SaaS</title>
+  <link rel="stylesheet" href="thema-saas.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+
+    /* Background full screen */
+    background-image: url('./assets/bg-bolo-2.jpg'); /* coloque o caminho da imagem */
+    background-size: cover;       /* cobre toda a tela */
+    background-position: center;  /* mantém o centro da imagem */
+    background-repeat: no-repeat;
+    background-attachment: fixed; /* mantém imagem fixa ao rolar */
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .form-container {
+    background-color: rgba(255, 255, 255, 0.95); /* semi-transparente */
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    animation: fadeIn 0.6s ease;
+  }
+
+  h2 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color, #343a40);
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  input {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #ccc;
+    transition: all 0.3s;
+  }
+
+  input:focus {
+    border-color: var(--primary-color, #28a745);
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+    outline: none;
+  }
+
+  button {
+    background-color: var(--success-color, #28a745);
+    color: #fff;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+  }
+
+  button:hover {
+    background-color: #218838;
+    transform: scale(1.05);
+  }
+
+  p {
+    margin-top: 1rem;
+  }
+
+  a {
+    color: var(--primary-color, #28a745);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  a:hover {
+    color: #1e7e34;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Responsividade */
+  @media (max-width: 480px) {
+    .form-container {
+      margin: 0 1rem;
+      padding: 1.5rem;
+    }
+  }
+</style>
+
+</head>
+<body>
+  <div class="form-container">
+    <h2>Cadastro - Confeitaria SaaS</h2>
+    <form id="registerForm">
+      <input type="text" id="name" name="name" placeholder="Nome" required>
+      <input type="email" id="email" name="email" placeholder="E-mail" required>
+      <input type="password" id="password" name="password" placeholder="Senha" required>
+      <button type="submit">Cadastrar</button>
+    </form>
+    <p>Já tem conta? <a href="login.html">Faça login</a></p>
+  </div>
+
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert('Erro: ' + (error.error || 'Não foi possível cadastrar'));
+          return;
+        }
+
+        alert('Cadastro realizado com sucesso! Agora faça login.');
+        window.location.href = 'login.html';
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao conectar com o servidor.');
+      }
+    });
+  </script>
+</body>
+</html>

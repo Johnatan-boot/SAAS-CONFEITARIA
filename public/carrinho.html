@@ -1,0 +1,36 @@
+<h2>Histórico de Compras</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Produto</th>
+      <th>Quantidade</th>
+      <th>Preço Unitário</th>
+      <th>Total</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody id="cart-list"></tbody>
+</table>
+
+<script>
+async function loadCart(clientId) {
+  const res = await fetch(`/api/orders/client/${clientId}`);
+  const orders = await res.json();
+  const tbody = document.getElementById('cart-list');
+  tbody.innerHTML = '';
+  orders.forEach(o => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${o.product_name}</td>
+        <td>${o.quantity}</td>
+        <td>R$ ${o.price.toFixed(2)}</td>
+        <td>R$ ${(o.total).toFixed(2)}</td>
+        <td>${o.status}</td>
+      </tr>
+    `;
+  });
+}
+
+// Exemplo: carregar histórico do cliente 1
+loadCart(1);
+</script>

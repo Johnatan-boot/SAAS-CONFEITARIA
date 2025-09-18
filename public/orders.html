@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Pedidos - Confeitaria SaaS</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="thema-saas.css">
+
+<style>
+body {
+    background-color: var(--color-bg, #FFFAFA);
+  }
+
+  h1, h2, h3{
+    color: var(--color-text-light, #666);
+  }
+
+  .btn{
+    background-color:var(--color-success, #2ecc71);
+    color: #FFFFFF;
+  }
+  .btn:hover{
+    background-color:var(--color-primary, #6F4F37);
+    color: #FFFFFF;
+  }
+
+  .dashboard-card {
+    background: var(--color-surface, #F5F5DC);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+</style>
+</head>
+<body class="p-4">
+
+<div class="container">
+  <h1 class="mb-4">Pedidos</h1>
+  <a href="dashboard.html" class="btn btn mb-3">Voltar ao Dashboard</a>
+
+  <div class="card mb-4 p-3 shadow-sm">
+    <h2>Criar / Editar Pedido</h2>
+    <form id="order-form" class="row g-3">
+      <input type="hidden" name="id" id="order-id">
+      <div class="col-md-4">
+        <select name="client_id" class="form-select" required></select>
+      </div>
+      <div class="col-md-4">
+        <select name="product_id" class="form-select" required></select>
+      </div>
+      <div class="col-md-2">
+        <input type="number" class="form-control" name="quantity" placeholder="Quantidade" required>
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select" required>
+          <option value="Pendente">Pendente</option>
+          <option value="Pago">Pago</option>
+          <option value="Atrasado">Atrasado</option>
+          <option value="Falha">Falha</option>
+          <option value="Em Produção">Em Produção</option>
+          <option value="Entregue">Entregue</option>
+        </select>
+      </div>
+      <div class="col-md-12">
+        <button type="submit" class="btn btn w-100">Salvar Pedido</button>
+      </div>
+    </form>
+  </div>
+
+  <h2>Lista de Pedidos</h2>
+  <table class="table table-striped table-hover shadow-sm">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Itens</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="order-list"></tbody>
+  </table>
+</div>
+
+<script type="module">
+async function loadClientsAndProducts() {
+  const [clientsRes, productsRes] = await Promise.all([
+    fetch('/api/clients', { credentials: 'same-origin' }),
+    fetch('/api/products', { credentials: 'same-origin' })
+  ]);
+
+  const clients = await clientsRes.json();
+  const products = await productsRes.json();
+
+  const clientSelect = document.querySelector('select[name="client_id"]');
+  clientSelect.innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+  const productSelect = document.querySelector('select[name="product_id"]');
+  productSelect.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+// Função simples de notificação
+function notify(msg, type = 'success') {
+  // Para algo rápido usamos alert, pode trocar por toast futuramente
+  alert(`${type.toUpperCase()}: ${msg}`);
+}
+
+async function loadOrders() {
+  const res = await fetch('/api/orders', { credentials: 'same-origin' });
+  const rows = await res.json();
+  if (!Array.isArray(rows)) return console.error('Pedidos inválidos', rows);
+
+  // Agrupar itens por pedido
+  const ordersMap = {};
+  rows.forEach(o => {
+    if (!ordersMap[o.order_id]) {
+      ordersMap[o.order_id] = {
+        order_id: o.order_id,
+        client_name: o.client_name,
+        status: o.status,
+        items: []
+      };
+    }
+    ordersMap[o.order_id].items.push({
+      product_name: o.product_name,
+      quantity: o.quantity,
+      price: o.price
+    });
+  });
+
+  const tbody = document.getElementById('order-list');
+  tbody.innerHTML = '';
+
+  Object.values(ordersMap).forEach(o => {
+    const tr = document.createElement('tr');
+    let itensHtml = '<ul class="mb-0">';
+    o.items.forEach(item => {
+      itensHtml += `<li>${item.product_name} — ${item.quantity}x (R$ ${item.price.toFixed(2)})</li>`;
+    });
+    itensHtml += '</ul>';
+
+    tr.innerHTML = `
+      <td>${o.order_id}</td>
+      <td>${o.client_name}</td>
+      <td>${itensHtml}</td>
+      <td>${o.status}</td>
+      <td>
+        <button class="btn btn-sm me-2" onclick="editOrder(${o.order_id})">Editar</button>
+        <button class="btn btn-sm" onclick="deleteOrder(${o.order_id})">Excluir</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Função para atualizar dashboard
+async function loadDashboard() {
+  const [clientsRes, productsRes, ordersRes] = await Promise.all([
+    fetch('/api/clients', { credentials: 'same-origin' }),
+    fetch('/api/products', { credentials: 'same-origin' }),
+    fetch('/api/orders', { credentials: 'same-origin' })
+  ]);
+  const clients = await clientsRes.json();
+  const products = await productsRes.json();
+  const orders = await ordersRes.json();
+
+  document.getElementById('total-clients').textContent = clients.length;
+  document.getElementById('total-products').textContent = products.length;
+  document.getElementById('total-orders').textContent = orders.length;
+  document.getElementById('pending-orders').textContent = orders.filter(o => o.status === 'Pendente').length;
+}
+
+// Submit do form de pedido
+document.getElementById('order-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = {
+    client_id: formData.get('client_id'),
+    product_id: formData.get('product_id'),
+    quantity: Number(formData.get('quantity')),
+    status: formData.get('status')
+  };
+
+  try {
+    const res = await fetch('/api/orders/single', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: 'same-origin'
+    });
+    const json = await res.json();
+    if (json.success) {
+      notify('Pedido salvo com sucesso!', 'success');
+      loadOrders();       // Atualiza lista
+      loadDashboard();    // Atualiza dashboard
+      e.target.reset();   // Limpa formulário
+    } else {
+      notify(json.error || 'Erro ao salvar pedido', 'error');
+    }
+  } catch (err) {
+    notify(err.message, 'error');
+  }
+});
+
+// Função de edição de pedido (simplificada, preenche o form)
+window.editOrder = function(orderId) {
+  const tbody = document.getElementById('order-list');
+  const row = [...tbody.querySelectorAll('tr')].find(r => r.firstChild.textContent == orderId);
+  if (!row) return;
+
+  const clientName = row.children[1].textContent;
+  const items = row.children[2].querySelectorAll('li');
+  const firstItem = items[0].textContent.split(' — ')[0]; // pega o primeiro produto
+  const quantity = Number(items[0].textContent.split(' — ')[1].replace('x', '').trim());
+  const status = row.children[3].textContent;
+
+  document.getElementById('order-id').value = orderId;
+  document.querySelector('select[name="client_id"]').value = [...document.querySelectorAll('select[name="client_id"] option')].find(o => o.textContent === clientName)?.value;
+  document.querySelector('select[name="product_id"]').value = [...document.querySelectorAll('select[name="product_id"] option')].find(o => o.textContent === firstItem)?.value;
+  document.querySelector('input[name="quantity"]').value = quantity;
+  document.querySelector('select[name="status"]').value = status;
+};
+
+// Função de exclusão
+window.deleteOrder = async function(orderId) {
+  if (!confirm('Tem certeza que deseja excluir este pedido?')) return;
+
+  try {
+    const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE', credentials: 'same-origin' });
+    const json = await res.json();
+    if (json.success) {
+      notify('Pedido excluído com sucesso!', 'success');
+      loadOrders();
+      loadDashboard();
+    } else {
+      notify(json.error || 'Erro ao excluir pedido', 'error');
+    }
+  } catch (err) {
+    notify(err.message, 'error');
+  }
+}
+
+// Inicialização
+loadClientsAndProducts();
+loadOrders();
+loadDashboard();
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</body>
+</html>

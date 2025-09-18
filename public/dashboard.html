@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard - Confeitaria SaaS</title>
+<link rel="stylesheet" href="thema-saas.css">
+
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  /* Custom Dashboard Styles */
+  body {
+    background-color: var(--color-bg, #FFFAFA);
+  }
+
+  h1{
+    color: var(  --color-text-light, #666);
+  }
+
+  nav a {
+    margin-right: 15px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+
+  .btn{
+    background-color:var(--color-success, #2ecc71);
+    color: #FFFFFF;
+  }
+  .btn:hover{
+    background-color:var(--color-primary, #6F4F37);
+    color: #FFFFFF;
+  }
+  nav a:hover {
+    color: var(--color-success, #2ecc71);
+  }
+
+  #dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .dashboard-card {
+    background: var(  --color-surface, #F5F5DC);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  }
+
+  .dashboard-card h3 {
+    color: var(  --color-text-light, #666);
+
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .dashboard-card p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--color-primary, #6F4F37);
+  }
+
+  #logout {
+    margin-top: 2rem;
+  }
+</style>
+</head>
+<body class="container my-5">
+
+<h1 class="mb-4">Dashboard Confeitaria</h1>
+
+<nav class="mb-4">
+  <a href="clients.html" class="btn btn-outline btn-sm">Clientes</a>
+  <a href="products.html" class="btn btn-outline btn-sm">Produtos</a>
+  <a href="orders.html" class="btn btn-outline btn-sm">Pedidos</a>
+</nav>
+
+<div id="dashboard-cards">
+  <!-- Cards de Relatórios -->
+  <div class="dashboard-card">
+    <h3>Total de Clientes</h3>
+    <p id="total-clients">0</p>
+  </div>
+  <div class="dashboard-card">
+    <h3>Total de Produtos</h3>
+    <p id="total-products">0</p>
+  </div>
+  <div class="dashboard-card">
+    <h3>Total de Pedidos</h3>
+    <p id="total-orders">0</p>
+  </div>
+  <div class="dashboard-card">
+    <h3>Pedidos Pendentes</h3>
+    <p id="pending-orders">0</p>
+  </div>
+</div>
+
+<button id="logout" class="btn btn w-100">Sair</button>
+
+<script>
+  // Logout funcional
+  document.getElementById('logout').addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+  });
+
+  // Função para carregar relatórios
+  async function loadDashboard() {
+    const [clientsRes, productsRes, ordersRes] = await Promise.all([
+      fetch('/api/clients'),
+      fetch('/api/products'),
+      fetch('/api/orders')
+    ]);
+    const clients = await clientsRes.json();
+    const products = await productsRes.json();
+    const orders = await ordersRes.json();
+
+    document.getElementById('total-clients').textContent = clients.length;
+    document.getElementById('total-products').textContent = products.length;
+    document.getElementById('total-orders').textContent = orders.length;
+    document.getElementById('pending-orders').textContent = orders.filter(o => o.status === 'Pendente').length;
+  }
+
+  loadDashboard();
+</script>
+
+</body>
+</html>

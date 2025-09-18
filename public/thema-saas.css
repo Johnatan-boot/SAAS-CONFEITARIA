@@ -1,0 +1,34 @@
+/* ===========================
+   TOKENS DE DESIGN SYSTEM - Gourmet
+=========================== */
+:root {
+  --color-primary: #6F4F37; /* Marrom Chocolate */
+  --color-secondary: #556B2F; /* Verde Musgo */
+  --color-bg: #FFFAFA; /* Branco Neve */
+  --color-surface: #F5F5DC; /* Bege Claro */
+  --color-text: #333;
+  --color-text-light: #666;
+  --color-error: #e74c3c;
+  --color-success: #2ecc71;
+
+  --font-family: 'Inter', sans-serif;
+  --font-size-base: 16px;
+  --font-size-sm: 0.875rem;
+  --font-size-lg: 1.25rem;
+  --font-weight-normal: 400;
+  --font-weight-bold: 700;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --radius: 8px;
+  --shadow: 0 4px 12px rgba(0,0,0,0.1);
+  --transition-fast: 0.2s;
+  --transition-medium: 0.4s;
+}
+
+
+

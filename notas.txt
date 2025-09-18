@@ -1,0 +1,138 @@
+PROXIMOS PASSOS A EXECUTAR
+
+🔹 O que está pendente / próximos passos
+
+Autenticação real de usuários (login + sessão).
+
+Relatórios exportáveis (PDF/Excel).
+
+Gráfico de evolução de pedidos por data (linha).
+
+Dashboard unificado (resumo geral em uma tela só).
+
+Modo multi-tema (trocar entre 3 paletas de confeitaria).
+
+Deploy (ex.: Vercel para frontend + Render/Heroku para backend).
+
+Documentação do projeto (README completo + prints).
+
+Refinamento visual:
+
+Animações sutis.
+
+Cards com hover moderno.
+
+Ícones ilustrativos (FontAwesome/Lucide).
+
+
+
+
+
+//notas de estudo e aprendizado
+
+📌 Fluxo da Compra no SaaS Confeitaria
+1. Frontend (JavaScript no navegador)
+
+O usuário abre o formulário e clica em “Finalizar Pedido”.
+
+O JavaScript no navegador pega os dados (client_id, product_id, quantity).
+
+Esse JS manda uma requisição HTTP (normalmente fetch) para a rota do backend:
+
+fetch('/api/orders', {
+  method: 'POST',
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    client_id: 1,
+    product_id: 10,
+    quantity: 2
+  })
+})
+
+
+➡️ Aqui não acontece nada de estoque ainda, é só envio de dados para o servidor.
+
+2. Backend (Express.js)
+
+No Express, temos um endpoint que “escuta” /api/orders.
+
+O Express recebe os dados da compra.
+
+Ele usa o SQLite para:
+
+Buscar o estoque atual no banco.
+
+Validar se existe produto e se a quantidade é suficiente.
+
+Criar o pedido.
+
+Atualizar o estoque.
+
+Exemplo em comandos que o Express executa:
+
+-- Buscar o estoque do produto
+SELECT stock FROM products WHERE id = ? AND user_id = ?;
+
+-- Inserir o pedido
+INSERT INTO orders (user_id, client_id, product_id, quantity, status) 
+VALUES (1, 1, 10, 2, 'Pendente');
+
+-- Atualizar o estoque
+UPDATE products SET stock = stock - 2 WHERE id = 10 AND user_id = 1;
+
+
+Se algo der errado, ele responde res.status(400).json({ error: "Estoque insuficiente!" }).
+Se der certo, responde res.json({ success: true, estoque_restante: 98 }).
+
+3. Banco de Dados (SQLite)
+
+O SQLite é quem armazena e garante persistência:
+
+Tabela products: tem a coluna stock.
+
+Tabela orders: guarda cada pedido feito.
+
+Quando o Express executa UPDATE products SET stock = stock - 2, o banco grava o novo valor (98).
+
+4. Resposta de volta
+
+O SQLite termina a operação → o Express recebe o “OK”.
+
+O Express devolve um JSON de resposta para o frontend:
+
+{
+  "success": true,
+  "id": 55,
+  "estoque_restante": 98
+}
+
+
+O JavaScript no navegador recebe isso e pode:
+
+Atualizar a tabela de pedidos.
+
+Mostrar o estoque atualizado.
+
+Exibir alerta de sucesso.
+
+📖 Em Resumo (roteiro mental)
+
+Frontend (JS) → manda dados → POST /api/orders
+
+Express → recebe → valida → envia comandos SQL
+
+SQLite → executa SELECT, INSERT, UPDATE
+
+Express → devolve resposta JSON
+
+Frontend (JS) → mostra resultado para o usuário
+
+👉 Esse ciclo é o CRUD clássico em ação:
+
+Create → INSERT INTO orders
+
+Read → SELECT stock FROM products
+
+Update → UPDATE products SET stock = stock - X
+
+Delete → (seria se cancelassemos um pedido e devolvêssemos o estoque).
