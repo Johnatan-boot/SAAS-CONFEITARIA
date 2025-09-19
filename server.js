@@ -1,8 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
-const db = require('./database'); // seu arquivo db.js
+const db = require('./database'); // Pool do pg
 
 const app = express();
 const PORT = 3000;
@@ -20,34 +21,49 @@ app.use(session({
   cookie: { secure: false }
 }));
 
+// ----------------- Middleware -----------------
+function authMiddleware(req, res, next) {
+  if (!req.session.userId) return res.status(401).json({ error: 'Não autorizado' });
+  next();
+}
+
 // ----------------- Autenticação -----------------
-app.post('/api/signup', (req, res) => {
-  const { name, email, password } = req.body;
-  const hashedPassword = bcrypt.hashSync(password, 10);
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
-  const stmt = db.prepare(`INSERT INTO users (name, email, password) VALUES (?, ?, ?)`);
-  stmt.run([name, email, hashedPassword], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+    const result = await db.query(
+      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id",
+      [name, email, hashedPassword]
+    );
 
-    req.session.userId = this.lastID;
-    res.json({ success: true, userId: this.lastID });
-  });
-  stmt.finalize();
+    const userId = result.rows[0].id;
+    req.session.userId = userId;
+    res.json({ success: true, userId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/login', (req, res) => {
-  const { email, password } = req.body;
-  db.get(`SELECT * FROM users WHERE email = ?`, [email], (err, user) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!user) return res.status(400).json({ error: 'Usuário não encontrado' });
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    const user = result.rows[0];
 
+    if (!user) return res.status(400).json({ error: 'Usuário não encontrado' });
     if (!bcrypt.compareSync(password, user.password)) {
       return res.status(400).json({ error: 'Senha inválida' });
     }
 
     req.session.userId = user.id;
     res.json({ success: true, user });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/logout', (req, res) => {
@@ -55,314 +71,288 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Middleware proteção
-function authMiddleware(req, res, next) {
-  if (!req.session.userId) return res.status(401).json({ error: 'Não autorizado' });
-  next();
-}
-
-// ----------------- Usuário logado -----------------
-app.get('/api/me', authMiddleware, (req, res) => {
-  db.get(`SELECT id, name, email, plan FROM users WHERE id = ?`, [req.session.userId], (err, user) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ user });
-  });
+app.get('/api/me', authMiddleware, async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT id, name, email, plan FROM users WHERE id = $1",
+      [req.session.userId]
+    );
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ----------------- CLIENTES -----------------
-
-// Histórico individual do cliente
-app.get('/api/orders/client/:client_id', authMiddleware, (req, res) => {
-  const { client_id } = req.params;
-  db.all(`
-    SELECT o.id, o.quantity, o.status, o.payment_status,
-           c.name AS client_name, p.name AS product_name, p.price,
-           (o.quantity * p.price) AS total
-    FROM orders o
-    JOIN clients c ON o.client_id = c.id
-    JOIN products p ON o.product_id = p.id
-    WHERE o.user_id = ? AND o.client_id = ?
-    ORDER BY o.id DESC
-  `, [req.session.userId, client_id], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+app.get('/api/clients', authMiddleware, async (req, res) => {
+  try {
+    const result = await db.query("SELECT * FROM clients WHERE user_id = $1", [req.session.userId]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/clients', authMiddleware, (req, res) => {
-  db.all("SELECT * FROM clients WHERE user_id = ?", [req.session.userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+app.post('/api/clients', authMiddleware, async (req, res) => {
+  try {
+    const { name, email, status } = req.body;
+    if (!name || !email) return res.status(400).json({ error: 'Preencha todos os campos!' });
+
+    const result = await db.query(
+      "INSERT INTO clients (user_id, name, email, status) VALUES ($1, $2, $3, $4) RETURNING id",
+      [req.session.userId, name, email, status || 'A melhorar']
+    );
+
+    res.json({ success: true, id: result.rows[0].id, name, email, status: status || 'A melhorar' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/clients', authMiddleware, (req, res) => {
-  const { name, email, status } = req.body;
-  if (!name || !email) return res.status(400).json({ error: 'Preencha todos os campos!' });
+app.put('/api/clients/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, status } = req.body;
 
-  const stmt = db.prepare("INSERT INTO clients (user_id, name, email, status) VALUES (?, ?, ?, ?)");
-  stmt.run([req.session.userId, name, email, status || 'A melhorar'], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ success: true, id: this.lastID, name, email, status: status || 'A melhorar' });
-  });
-  stmt.finalize();
-});
+    await db.query(
+      "UPDATE clients SET name = $1, email = $2, status = $3 WHERE id = $4 AND user_id = $5",
+      [name, email, status || 'A melhorar', id, req.session.userId]
+    );
 
-app.put('/api/clients/:id', authMiddleware, (req, res) => {
-  const { id } = req.params;
-  const { name, email, status } = req.body;
-  db.run("UPDATE clients SET name = ?, email = ?, status = ? WHERE id = ? AND user_id = ?",
-    [name, email, status || 'A melhorar', id, req.session.userId],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
-    }
-  );
-});
-
-app.delete('/api/clients/:id', authMiddleware, (req, res) => {
-  const { id } = req.params;
-  db.run("DELETE FROM clients WHERE id = ? AND user_id = ?", [id, req.session.userId], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/clients/status-summary', authMiddleware, (req, res) => {
-  db.all("SELECT status, COUNT(*) as count FROM clients WHERE user_id = ? GROUP BY status",
-    [req.session.userId],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      const summary = { Satisfeito: 0, Insatisfeito: 0, 'A melhorar': 0 };
-      rows.forEach(r => summary[r.status] = r.count);
-      res.json(summary);
-    }
-  );
+app.delete('/api/clients/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query("DELETE FROM clients WHERE id = $1 AND user_id = $2", [id, req.session.userId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/clients/status-summary', authMiddleware, async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT status, COUNT(*) as count FROM clients WHERE user_id = $1 GROUP BY status",
+      [req.session.userId]
+    );
+    const summary = { Satisfeito: 0, Insatisfeito: 0, 'A melhorar': 0 };
+    result.rows.forEach(r => summary[r.status] = parseInt(r.count));
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ----------------- FEEDBACKS -----------------
-app.post('/api/feedbacks', authMiddleware, (req, res) => {
-  const { client_id, rating, comment, photo } = req.body;
-  if (!client_id || !rating) return res.status(400).json({ error: 'Campos obrigatórios faltando' });
+app.post('/api/feedbacks', authMiddleware, async (req, res) => {
+  try {
+    const { client_id, rating, comment, photo } = req.body;
+    if (!client_id || !rating) return res.status(400).json({ error: 'Campos obrigatórios faltando' });
 
-  const stmt = db.prepare("INSERT INTO feedbacks (client_id, rating, comment, photo) VALUES (?, ?, ?, ?)");
-  stmt.run(client_id, rating, comment || '', photo || null, function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
-  });
-  stmt.finalize();
+    const result = await db.query(
+      "INSERT INTO feedbacks (client_id, rating, comment, photo) VALUES ($1, $2, $3, $4) RETURNING id",
+      [client_id, rating, comment || '', photo || null]
+    );
+    res.json({ id: result.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Antes
-// app.get('/api/feedbacks', authMiddleware, (req, res) => { ... });
-
-// Depois: trazer também o nome do cliente
-app.get('/api/feedbacks', authMiddleware, (req, res) => {
-  db.all(`
-    SELECT f.id, f.client_id, f.rating, f.comment, f.photo, c.name AS client_name
-    FROM feedbacks f
-    JOIN clients c ON f.client_id = c.id
-    WHERE c.user_id = ?
-  `, [req.session.userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+app.get('/api/feedbacks', authMiddleware, async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT f.id, f.client_id, f.rating, f.comment, f.photo, c.name AS client_name
+      FROM feedbacks f
+      JOIN clients c ON f.client_id = c.id
+      WHERE c.user_id = $1
+    `, [req.session.userId]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-
-app.get('/api/feedbacks/:client_id', authMiddleware, (req, res) => {
-  const { client_id } = req.params;
-  db.all("SELECT * FROM feedbacks WHERE client_id = ?", [client_id], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+app.get('/api/feedbacks/:client_id', authMiddleware, async (req, res) => {
+  try {
+    const { client_id } = req.params;
+    const result = await db.query("SELECT * FROM feedbacks WHERE client_id = $1", [client_id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ----------------- PRODUTOS -----------------
-app.get('/api/products', authMiddleware, (req, res) => {
-  db.all("SELECT * FROM products WHERE user_id = ?", [req.session.userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+app.get('/api/products', authMiddleware, async (req, res) => {
+  try {
+    const result = await db.query("SELECT * FROM products WHERE user_id = $1", [req.session.userId]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/products', authMiddleware, (req, res) => {
-  const { name, price, stock } = req.body;
-  if (!name || price == null || stock == null)
-    return res.status(400).json({ error: 'Preencha todos os campos!' });
+app.post('/api/products', authMiddleware, async (req, res) => {
+  try {
+    const { name, price, stock } = req.body;
+    if (!name || price == null || stock == null)
+      return res.status(400).json({ error: 'Preencha todos os campos!' });
 
-  const stmt = db.prepare("INSERT INTO products (user_id, name, price, stock) VALUES (?, ?, ?, ?)");
-  stmt.run([req.session.userId, name, price, stock], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ success: true, id: this.lastID, name, price, stock });
-  });
-  stmt.finalize();
+    const result = await db.query(
+      "INSERT INTO products (user_id, name, price, stock) VALUES ($1, $2, $3, $4) RETURNING id",
+      [req.session.userId, name, price, stock]
+    );
+    res.json({ success: true, id: result.rows[0].id, name, price, stock });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.put('/api/products/:id', authMiddleware, (req, res) => {
-  const { id } = req.params;
-  const { name, price, stock } = req.body;
-  db.run(
-    "UPDATE products SET name = ?, price = ?, stock = ? WHERE id = ? AND user_id = ?",
-    [name, price, stock, id, req.session.userId],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
-    }
-  );
-});
-
-app.delete('/api/products/:id', authMiddleware, (req, res) => {
-  const { id } = req.params;
-  db.run("DELETE FROM products WHERE id = ? AND user_id = ?", [id, req.session.userId], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+app.put('/api/products/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, stock } = req.body;
+    await db.query(
+      "UPDATE products SET name=$1, price=$2, stock=$3 WHERE id=$4 AND user_id=$5",
+      [name, price, stock, id, req.session.userId]
+    );
     res.json({ success: true });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/products/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query("DELETE FROM products WHERE id=$1 AND user_id=$2", [id, req.session.userId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ----------------- ORDERS -----------------
-
 // Criar pedido de um único produto
-app.post('/api/orders/single', authMiddleware, (req, res) => {
-  const { client_id, product_id, quantity, status } = req.body;
-  if (!client_id || !product_id || !quantity)
-    return res.status(400).json({ error: 'Preencha todos os campos!' });
+app.post('/api/orders/single', authMiddleware, async (req, res) => {
+  try {
+    const { client_id, product_id, quantity, status } = req.body;
+    if (!client_id || !product_id || !quantity)
+      return res.status(400).json({ error: 'Preencha todos os campos!' });
 
-  db.get("SELECT stock FROM products WHERE id = ? AND user_id = ?", 
-    [product_id, req.session.userId], 
-    (err, product) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (!product) return res.status(404).json({ error: 'Produto não encontrado' });
+    const productResult = await db.query(
+      "SELECT stock FROM products WHERE id=$1 AND user_id=$2",
+      [product_id, req.session.userId]
+    );
 
-      if (product.stock < quantity) {
-        return res.status(400).json({ error: 'Estoque insuficiente!' });
-      }
+    const product = productResult.rows[0];
+    if (!product) return res.status(404).json({ error: 'Produto não encontrado' });
+    if (product.stock < quantity) return res.status(400).json({ error: 'Estoque insuficiente!' });
 
-      // Cria pedido base
-      db.run(
-        "INSERT INTO orders (user_id, client_id, status, payment_status) VALUES (?, ?, ?, ?)",
-        [req.session.userId, client_id, status || 'Pendente', 'Pendente'],
-        function(err) {
-          if (err) return res.status(500).json({ error: err.message });
-          const orderId = this.lastID;
+    const orderResult = await db.query(
+      "INSERT INTO orders (user_id, client_id, status, payment_status) VALUES ($1, $2, $3, $4) RETURNING id",
+      [req.session.userId, client_id, status || 'Pendente', 'Pendente']
+    );
 
-          // Insere item no order_items
-          db.run(
-            "INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)",
-            [orderId, product_id, quantity],
-            (err2) => {
-              if (err2) return res.status(500).json({ error: err2.message });
+    const orderId = orderResult.rows[0].id;
 
-              // Atualiza estoque
-              db.run("UPDATE products SET stock = stock - ? WHERE id = ? AND user_id = ?",
-                [quantity, product_id, req.session.userId],
-                function(err3) {
-                  if (err3) return res.status(500).json({ error: err3.message });
+    await db.query(
+      "INSERT INTO order_items (order_id, product_id, quantity) VALUES ($1, $2, $3)",
+      [orderId, product_id, quantity]
+    );
 
-                  res.json({ success: true, orderId, estoque_restante: product.stock - quantity });
-                }
-              );
-            }
-          );
-        }
-      );
-    });
-});
+    await db.query(
+      "UPDATE products SET stock = stock - $1 WHERE id = $2 AND user_id = $3",
+      [quantity, product_id, req.session.userId]
+    );
 
-// Criar pedido com vários itens
-app.post('/api/orders/multi', authMiddleware, (req, res) => {
-  const { client_id, items, status } = req.body;
-  if (!client_id || !items || items.length === 0) {
-    return res.status(400).json({ error: 'Informe cliente e itens.' });
+    res.json({ success: true, orderId, estoque_restante: product.stock - quantity });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
+});
 
-  
-  db.run(
-    `INSERT INTO orders (user_id, client_id, status, payment_status) VALUES (?, ?, ?, ?)`,
-    [req.session.userId, client_id, status || 'Pendente', 'Pendente'],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      const orderId = this.lastID;
+// Criar pedido múltiplo
+app.post('/api/orders/multi', authMiddleware, async (req, res) => {
+  try {
+    const { client_id, items, status } = req.body;
+    if (!client_id || !items || items.length === 0)
+      return res.status(400).json({ error: 'Informe cliente e itens.' });
 
-      const stmt = db.prepare(`INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)`);
+    const orderResult = await db.query(
+      "INSERT INTO orders (user_id, client_id, status, payment_status) VALUES ($1, $2, $3, $4) RETURNING id",
+      [req.session.userId, client_id, status || 'Pendente', 'Pendente']
+    );
 
-      items.forEach(item => {
-        stmt.run(orderId, item.product_id, item.quantity);
+    const orderId = orderResult.rows[0].id;
 
-        // Atualizar estoque
-        db.run(
-          `UPDATE products SET stock = stock - ? WHERE id = ? AND user_id = ?`,
-          [item.quantity, item.product_id, req.session.userId]
-        );
-      });
-
-      stmt.finalize();
-      res.json({ success: true, orderId });
+    for (const item of items) {
+      await db.query(
+        "INSERT INTO order_items (order_id, product_id, quantity) VALUES ($1, $2, $3)",
+        [orderId, item.product_id, item.quantity]
+      );
+      await db.query(
+        "UPDATE products SET stock = stock - $1 WHERE id = $2 AND user_id = $3",
+        [item.quantity, item.product_id, req.session.userId]
+      );
     }
-  );
+
+    res.json({ success: true, orderId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// ----------------- GET ORDERS -----------------
+// GET orders
+app.get('/api/orders', authMiddleware, async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT o.id AS order_id, o.status, o.payment_status, o.created_at,
+             c.id AS client_id, c.name AS client_name,
+             p.id AS product_id, p.name AS product_name, p.price,
+             oi.quantity, (oi.quantity * p.price) AS total
+      FROM orders o
+      JOIN clients c ON o.client_id = c.id
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN products p ON oi.product_id = p.id
+      WHERE o.user_id = $1
+      ORDER BY o.id DESC
+    `, [req.session.userId]);
 
-// GET /api/orders - todos os pedidos do usuário logado
-app.get('/api/orders', authMiddleware, (req, res) => {
-  db.all(`
-    SELECT 
-      o.id AS order_id,
-      o.status,
-      o.payment_status,
-      o.created_at,
-      c.id AS client_id,
-      c.name AS client_name,
-      p.id AS product_id,
-      p.name AS product_name,
-      p.price,
-      oi.quantity,
-      (oi.quantity * p.price) AS total
-    FROM orders o
-    JOIN clients c ON o.client_id = c.id
-    JOIN order_items oi ON o.id = oi.order_id
-    JOIN products p ON oi.product_id = p.id
-    WHERE o.user_id = ?
-    ORDER BY o.id DESC
-  `, [req.session.userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
+app.get('/api/orders/client/:client_id', authMiddleware, async (req, res) => {
+  try {
+    const { client_id } = req.params;
+    const result = await db.query(`
+      SELECT o.id AS order_id, o.status, o.payment_status, o.created_at,
+             c.name AS client_name,
+             p.id AS product_id, p.name AS product_name, p.price,
+             oi.quantity, (oi.quantity * p.price) AS total
+      FROM orders o
+      JOIN clients c ON o.client_id = c.id
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN products p ON oi.product_id = p.id
+      WHERE o.user_id=$1 AND o.client_id=$2
+      ORDER BY o.id DESC
+    `, [req.session.userId, client_id]);
 
-app.get('/api/orders/client/:client_id', authMiddleware, (req, res) => {
-  const { client_id } = req.params;
-
-  db.all(`
-    SELECT 
-      o.id AS order_id,
-      o.status,
-      o.payment_status,
-      o.created_at,
-      c.name AS client_name,
-      p.id AS product_id,
-      p.name AS product_name,
-      p.price,
-      oi.quantity,
-      (oi.quantity * p.price) AS total
-    FROM orders o
-    JOIN clients c ON o.client_id = c.id
-    JOIN order_items oi ON o.id = oi.order_id
-    JOIN products p ON oi.product_id = p.id
-    WHERE o.user_id = ? AND o.client_id = ?
-    ORDER BY o.id DESC
-  `, [req.session.userId, client_id], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-
-    res.json(rows);
-  });
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-
-
-
-
 
 // ----------------- Servidor -----------------
 app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));

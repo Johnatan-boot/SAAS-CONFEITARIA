@@ -1,80 +1,83 @@
-const Database = require('better-sqlite3');
-const db = new Database('./database.db');
+require('dotenv').config();
+const { Pool } = require('pg');
 
+const isRender = !!process.env.RENDER_INTERNAL_HOSTNAME;
 
-
-db.serialize(() => {
-  // ----------------- Usuários -----------------
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    email TEXT UNIQUE,
-    password TEXT,
-    plan TEXT DEFAULT 'Free',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  // ----------------- Clientes -----------------
-  db.run(`CREATE TABLE IF NOT EXISTS clients (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    name TEXT,
-    email TEXT
-  )`);
-
-  // Adiciona coluna "status" em clients se não existir
-  db.run(`ALTER TABLE clients ADD COLUMN status TEXT DEFAULT 'A melhorar'`, (err) => {
-    if (err && !err.message.includes("duplicate column name")) {
-      console.error("Erro ao adicionar coluna status:", err.message);
-    }
-  });
-
-  // ----------------- Feedbacks -----------------
-  db.run(`CREATE TABLE IF NOT EXISTS feedbacks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER,
-    rating INTEGER CHECK(rating >= 1 AND rating <= 5),
-    comment TEXT,
-    photo TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(client_id) REFERENCES clients(id)
-  )`);
-
-  // Adiciona coluna "photo" em feedbacks se não existir
-  db.run(`ALTER TABLE feedbacks ADD COLUMN photo TEXT`, (err) => {
-    if (err && !err.message.includes("duplicate column name")) {
-      console.error("Erro ao adicionar coluna photo:", err.message);
-    }
-  });
-
-  // ----------------- Produtos -----------------
-  db.run(`CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    name TEXT,
-    price REAL,
-    stock INTEGER
-  )`);
-
-  // ----------------- Pedidos -----------------
-  db.run(`CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    client_id INTEGER,
-    status TEXT DEFAULT 'Pendente',
-    payment_status TEXT DEFAULT 'Pendente',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  // ----------------- Itens dos Pedidos -----------------
-  db.run(`CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER,
-    product_id INTEGER,
-    quantity INTEGER,
-    FOREIGN KEY(order_id) REFERENCES orders(id),
-    FOREIGN KEY(product_id) REFERENCES products(id)
-  )`);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false } // necessário para Render
 });
 
-module.exports = db;
+
+async function initDB() {
+  try {
+    // Aqui você pode criar as tabelas se ainda não existirem
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        plan VARCHAR(50)
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        name VARCHAR(255),
+        email VARCHAR(255),
+        status VARCHAR(50)
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        name VARCHAR(255),
+        price NUMERIC(10,2),
+        stock INTEGER
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        client_id INTEGER REFERENCES clients(id),
+        status VARCHAR(50),
+        payment_status VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS order_items (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER REFERENCES orders(id),
+        product_id INTEGER REFERENCES products(id),
+        quantity INTEGER
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS feedbacks (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER REFERENCES clients(id),
+        rating INTEGER,
+        comment TEXT,
+        photo TEXT
+      );
+    `);
+
+    console.log("✅ Banco inicializado com sucesso!");
+  } catch (err) {
+    console.error("❌ Erro ao inicializar o banco:", err);
+  }
+}
+
+initDB();
+
+module.exports = pool;

@@ -4,10 +4,9 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-  "start": "node server.js",
-  "postinstall": "npm rebuild better-sqlite3 --build-from-source"
-},
-
+    "start": "node server.js",
+    "postinstall": "npm rebuild better-sqlite3 --build-from-source"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -17,10 +16,12 @@
     "better-sqlite3": "^12.2.0",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "pg": "^8.16.3",
     "sqlite3": "^5.1.7"
   }
 }
