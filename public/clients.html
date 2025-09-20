@@ -288,11 +288,25 @@ async function loadFeedbacks() {
     const li = document.createElement('li');
 
     // Coluna 1: imagem
-    if (f.photo) {
-      const img = document.createElement('img');
-      img.src = f.photo;
-      li.appendChild(img);
-    }
+   if (f.photo) {
+  const img = document.createElement('img');
+
+  // Caso seja base64 já vem pronto
+  if (f.photo.startsWith("data:image")) {
+    img.src = f.photo;
+  } else {
+    // Caso seja apenas o nome/URL vindo do backend
+    img.src = `/uploads/${f.photo}`;
+  }
+
+  li.appendChild(img);
+} else {
+  // Avatar padrão se não tiver imagem
+  const img = document.createElement('img');
+  img.src = "https://via.placeholder.com/70x70.png?text=User";
+  li.appendChild(img);
+}
+
 
     // Coluna 2: estrela + texto
     const contentDiv = document.createElement('div');
