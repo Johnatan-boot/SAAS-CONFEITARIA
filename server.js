@@ -4,14 +4,27 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const db = require('./database'); // Pool do pg
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 const PORT = 3000;
+
+// ----------------- Upload Config -----------------
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, 'public/uploads')),
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
 
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Sessão
 app.use(session({
@@ -109,62 +122,26 @@ app.post('/api/clients', authMiddleware, async (req, res) => {
   }
 });
 
-app.put('/api/clients/:id', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, email, status } = req.body;
-
-    await db.query(
-      "UPDATE clients SET name = $1, email = $2, status = $3 WHERE id = $4 AND user_id = $5",
-      [name, email, status || 'A melhorar', id, req.session.userId]
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/clients/:id', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.query("DELETE FROM clients WHERE id = $1 AND user_id = $2", [id, req.session.userId]);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/clients/status-summary', authMiddleware, async (req, res) => {
-  try {
-    const result = await db.query(
-      "SELECT status, COUNT(*) as count FROM clients WHERE user_id = $1 GROUP BY status",
-      [req.session.userId]
-    );
-    const summary = { Satisfeito: 0, Insatisfeito: 0, 'A melhorar': 0 };
-    result.rows.forEach(r => summary[r.status] = parseInt(r.count));
-    res.json(summary);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ----------------- FEEDBACKS -----------------
-app.post('/api/feedbacks', authMiddleware, async (req, res) => {
+// Envio com foto
+app.post('/api/feedbacks', authMiddleware, upload.single('photo'), async (req, res) => {
   try {
-    const { client_id, rating, comment, photo } = req.body;
+    const { client_id, rating, comment } = req.body;
     if (!client_id || !rating) return res.status(400).json({ error: 'Campos obrigatórios faltando' });
+
+    const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
     const result = await db.query(
       "INSERT INTO feedbacks (client_id, rating, comment, photo) VALUES ($1, $2, $3, $4) RETURNING id",
-      [client_id, rating, comment || '', photo || null]
+      [client_id, rating, comment || '', photo]
     );
-    res.json({ id: result.rows[0].id });
+    res.json({ id: result.rows[0].id, photo });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// Listar feedbacks
 app.get('/api/feedbacks', authMiddleware, async (req, res) => {
   try {
     const result = await db.query(`
@@ -179,15 +156,6 @@ app.get('/api/feedbacks', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/feedbacks/:client_id', authMiddleware, async (req, res) => {
-  try {
-    const { client_id } = req.params;
-    const result = await db.query("SELECT * FROM feedbacks WHERE client_id = $1", [client_id]);
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // ----------------- PRODUTOS -----------------
 app.get('/api/products', authMiddleware, async (req, res) => {
