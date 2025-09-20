@@ -340,23 +340,29 @@ app.get('/api/orders', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/orders/client/:client_id', authMiddleware, async (req, res) => {
+app.get('/api/orders', authMiddleware, async (req, res) => {
   try {
-    const { client_id } = req.params;
     const result = await db.query(`
       SELECT o.id AS order_id, o.status, o.payment_status, o.created_at,
-             c.name AS client_name,
+             c.id AS client_id, c.name AS client_name,
              p.id AS product_id, p.name AS product_name, p.price,
              oi.quantity, (oi.quantity * p.price) AS total
       FROM orders o
       JOIN clients c ON o.client_id = c.id
       JOIN order_items oi ON o.id = oi.order_id
       JOIN products p ON oi.product_id = p.id
-      WHERE o.user_id=$1 AND o.client_id=$2
+      WHERE o.user_id = $1
       ORDER BY o.id DESC
-    `, [req.session.userId, client_id]);
+    `, [req.session.userId]);
 
-    res.json(result.rows);
+    // 🚀 Converter o campo price para número
+    const orders = result.rows.map(o => ({
+      ...o,
+      price: parseFloat(o.price),
+      total: parseFloat(o.total)
+    }));
+
+    res.json(orders);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

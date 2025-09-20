@@ -136,7 +136,7 @@ async function loadOrders() {
     const tr = document.createElement('tr');
     let itensHtml = '<ul class="mb-0">';
     o.items.forEach(item => {
-      itensHtml += `<li>${item.product_name} — ${item.quantity}x (R$ ${item.price.toFixed(2)})</li>`;
+         itensHtml += `<li>${item.product_name} — ${item.quantity}x (R$ ${Number(item.price).toFixed(2)})</li>`;
     });
     itensHtml += '</ul>';
 
