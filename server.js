@@ -193,11 +193,19 @@ app.get('/api/feedbacks/:client_id', authMiddleware, async (req, res) => {
 app.get('/api/products', authMiddleware, async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM products WHERE user_id = $1", [req.session.userId]);
-    res.json(result.rows);
+    
+    // Corrigir price para Number
+    const products = result.rows.map(p => ({
+      ...p,
+      price: parseFloat(p.price) // converte string para número
+    }));
+
+    res.json(products);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 app.post('/api/products', authMiddleware, async (req, res) => {
   try {
