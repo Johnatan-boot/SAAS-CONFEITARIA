@@ -7,24 +7,34 @@ const db = require('./database'); // Pool do pg
 const multer = require('multer');
 const path = require('path');
 
+// >>> IMPORTAÇÕES PARA CLOUDINARY <<<
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
 const app = express();
 const PORT = 3000;
 
 // ----------------- Upload Config -----------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, 'public/uploads')),
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "confeitaria_saas/feedbacks",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"]
   }
 });
+
 const upload = multer({ storage });
 
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Sessão
 app.use(session({
@@ -123,13 +133,14 @@ app.post('/api/clients', authMiddleware, async (req, res) => {
 });
 
 // ----------------- FEEDBACKS -----------------
-// Envio com foto
+// Envio com foto para Cloudinary
 app.post('/api/feedbacks', authMiddleware, upload.single('photo'), async (req, res) => {
   try {
     const { client_id, rating, comment } = req.body;
     if (!client_id || !rating) return res.status(400).json({ error: 'Campos obrigatórios faltando' });
 
-    const photo = req.file ? `/uploads/${req.file.filename}` : null;
+    // Cloudinary retorna a URL no req.file.path
+    const photo = req.file ? req.file.path : null;
 
     const result = await db.query(
       "INSERT INTO feedbacks (client_id, rating, comment, photo) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -156,16 +167,14 @@ app.get('/api/feedbacks', authMiddleware, async (req, res) => {
   }
 });
 
-
 // ----------------- PRODUTOS -----------------
 app.get('/api/products', authMiddleware, async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM products WHERE user_id = $1", [req.session.userId]);
     
-    // Corrigir price para Number
     const products = result.rows.map(p => ({
       ...p,
-      price: parseFloat(p.price) // converte string para número
+      price: parseFloat(p.price)
     }));
 
     res.json(products);
@@ -173,7 +182,6 @@ app.get('/api/products', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 app.post('/api/products', authMiddleware, async (req, res) => {
   try {
@@ -302,28 +310,6 @@ app.get('/api/orders', authMiddleware, async (req, res) => {
       ORDER BY o.id DESC
     `, [req.session.userId]);
 
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/orders', authMiddleware, async (req, res) => {
-  try {
-    const result = await db.query(`
-      SELECT o.id AS order_id, o.status, o.payment_status, o.created_at,
-             c.id AS client_id, c.name AS client_name,
-             p.id AS product_id, p.name AS product_name, p.price,
-             oi.quantity, (oi.quantity * p.price) AS total
-      FROM orders o
-      JOIN clients c ON o.client_id = c.id
-      JOIN order_items oi ON o.id = oi.order_id
-      JOIN products p ON oi.product_id = p.id
-      WHERE o.user_id = $1
-      ORDER BY o.id DESC
-    `, [req.session.userId]);
-
-    // 🚀 Converter o campo price para número
     const orders = result.rows.map(o => ({
       ...o,
       price: parseFloat(o.price),
