@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
-const db = require('./database'); // Pool do pg
+const db = require('./database'); // Pool do pg 
 const multer = require('multer');
 const path = require('path');
 
