@@ -291,15 +291,11 @@ async function loadFeedbacks() {
     // Coluna 1: imagem
     const img = document.createElement('img');
     if (f.photo) {
-      if (f.photo.startsWith("data:image")) {
-        img.src = f.photo; // base64
-      } else {
-        img.src = f.photo; // já vem "/uploads/arquivo.png"
-      }
-    } else {
-      img.src = "https://via.placeholder.com/70x70.png?text=User";
-    }
-    li.appendChild(img);
+  img.src = f.photo; // já é a URL pública (Cloudinary)
+} else {
+  img.src = "https://via.placeholder.com/70x70.png?text=User";
+}
+li.appendChild(img);
 
     // Coluna 2: estrela + texto
     const contentDiv = document.createElement('div');

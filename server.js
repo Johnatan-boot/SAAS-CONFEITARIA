@@ -134,23 +134,40 @@ app.post('/api/clients', authMiddleware, async (req, res) => {
 
 // ----------------- FEEDBACKS -----------------
 // Envio com foto para Cloudinary
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 app.post('/api/feedbacks', authMiddleware, upload.single('photo'), async (req, res) => {
   try {
     const { client_id, rating, comment } = req.body;
-    if (!client_id || !rating) return res.status(400).json({ error: 'Campos obrigatórios faltando' });
+    if (!client_id || !rating) {
+      return res.status(400).json({ error: 'Campos obrigatórios faltando' });
+    }
 
-    // Cloudinary retorna a URL no req.file.path
-    const photo = req.file ? req.file.path : null;
+    let photo = null;
+    if (req.file) {
+      // faz upload real pro Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path);
+      photo = result.secure_url; // <- salva a URL pública
+    }
 
     const result = await db.query(
       "INSERT INTO feedbacks (client_id, rating, comment, photo) VALUES ($1, $2, $3, $4) RETURNING id",
       [client_id, rating, comment || '', photo]
     );
+
     res.json({ id: result.rows[0].id, photo });
   } catch (err) {
+    console.error("Erro ao salvar feedback:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Listar feedbacks
 app.get('/api/feedbacks', authMiddleware, async (req, res) => {

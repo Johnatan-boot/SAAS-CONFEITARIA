@@ -1,20 +1,17 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
-const isRender = !!process.env.RENDER_INTERNAL_HOSTNAME;
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // necessário para Render
+  ssl: { rejectUnauthorized: false } // obrigatório para Render
 });
-
 
 async function initDB() {
   try {
-    // Aqui você pode criar as tabelas se ainda não existirem
+    // Usuários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
@@ -22,51 +19,57 @@ async function initDB() {
       );
     `);
 
+    // Clientes
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clients (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(255),
         email VARCHAR(255),
         status VARCHAR(50)
       );
     `);
 
+    // Produtos
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(255),
         price NUMERIC(10,2),
-        stock INTEGER
+        stock INT
       );
     `);
 
+    // Pedidos
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
-        client_id INTEGER REFERENCES clients(id),
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        client_id INT REFERENCES clients(id) ON DELETE CASCADE,
         status VARCHAR(50),
         payment_status VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
+    // Itens de pedidos
     await pool.query(`
       CREATE TABLE IF NOT EXISTS order_items (
-        id SERIAL PRIMARY KEY,
-        order_id INTEGER REFERENCES orders(id),
-        product_id INTEGER REFERENCES products(id),
-        quantity INTEGER
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        order_id INT REFERENCES orders(id) ON DELETE CASCADE,
+        product_id INT REFERENCES products(id) ON DELETE CASCADE,
+        quantity INT
       );
     `);
 
+    // Feedbacks
     await pool.query(`
       CREATE TABLE IF NOT EXISTS feedbacks (
-        id SERIAL PRIMARY KEY,
-        client_id INTEGER REFERENCES clients(id),
-        rating INTEGER,
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        client_id INT REFERENCES clients(id) ON DELETE CASCADE,
+        rating INT,
         comment TEXT,
         photo TEXT
       );
