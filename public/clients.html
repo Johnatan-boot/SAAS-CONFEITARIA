@@ -7,119 +7,93 @@
 <link rel="stylesheet" href="thema-saas.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-
   body {
     background-color: var(--color-bg, #FFFAFA);
   }
-
-  h1{
-    color: var(  --color-text-light, #666);
+  h1, h2, h3 {
+    color: var(--color-text-light, #666);
   }
-  h2{
-    color: var(  --color-text-light, #666);
-  }
-  h3{
-    color: var(  --color-text-light, #666);
-  }
-
-  .btn{
-    background-color:var(--color-success, #2ecc71);
+  .btn {
+    background-color: var(--color-success, #2ecc71);
     color: #FFFFFF;
   }
-  .btn:hover{
-    background-color:var(--color-primary, #6F4F37);
+  .btn:hover {
+    background-color: var(--color-primary, #6F4F37);
     color: #FFFFFF;
   }
-
-    .dashboard-card {
-    background: var(  --color-surface, #F5F5DC);
+  .dashboard-card {
+    background: var(--color-surface, #F5F5DC);
     border-radius: 0.75rem;
     padding: 1.5rem;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05);
     transition: transform 0.3s, box-shadow 0.3s;
   }
-#feedback-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
-  list-style: none;
-  padding: 0;
-  margin-top: 1rem;
-}
-
-#feedback-list li {
-  display: flex;
-  align-items: flex-start;
-  background-color: #f8f9fa;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  max-width: 450px;
-  width: 100%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-#feedback-list li:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-}
-
-#feedback-list li img {
-  width: 70px;
-  height: 70px;
-  object-fit: cover;
-  border-radius: 50%;
-  margin-right: 1rem;
-}
-
-.feedback-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.feedback-text {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.95rem;
-  word-break: break-word;
-}
-
-@media (max-width: 768px) {
+  #feedback-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+  }
   #feedback-list li {
-    max-width: 350px;
+    display: flex;
+    align-items: flex-start;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-width: 450px;
+    width: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  #feedback-list li:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   }
   #feedback-list li img {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-right: 1rem;
   }
-}
-
-@media (max-width: 480px) {
-  #feedback-list li {
+  .feedback-content {
+    display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  #feedback-list li img {
-    margin-bottom: 0.5rem;
-    margin-right: 0;
-  }
-  .feedback-text {
     justify-content: center;
   }
-}
+  .feedback-text {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
+  @media (max-width: 768px) {
+    #feedback-list li { max-width: 350px; }
+    #feedback-list li img { width: 60px; height: 60px; }
+  }
+  @media (max-width: 480px) {
+    #feedback-list li {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    #feedback-list li img {
+      margin-bottom: 0.5rem;
+      margin-right: 0;
+    }
+    .feedback-text { justify-content: center; }
+  }
 </style>
-
-
 </head>
 <body class="p-4">
 
 <div class="container">
   <h1 class="mb-4">Clientes</h1>
-  <a href="dashboard.html" class="btn btn mb-3">Voltar ao Dashboard</a>
+  <a href="dashboard.html" class="btn mb-3">Voltar ao Dashboard</a>
 
   <!-- Formulário de Adição / Edição -->
   <div class="card mb-4 p-3 shadow-sm">
@@ -140,7 +114,7 @@
         </select>
       </div>
       <div class="col-12">
-        <button type="submit" class="btn btn w-100">Salvar</button>
+        <button type="submit" class="btn w-100">Salvar</button>
       </div>
     </form>
   </div>
@@ -175,22 +149,16 @@
 <script>
 let clientsChart;
 
-// Inicialização da página
 async function initPage() {
   await loadClients();
   await loadFeedbacks();
 }
 
-// Função para carregar clientes
 async function loadClients() {
   const res = await fetch('/api/clients');
-  if (!res.ok) {
-    alert('Você precisa estar logado para ver os clientes');
-    return;
-  }
+  if (!res.ok) { alert('Você precisa estar logado para ver os clientes'); return; }
   const clients = await res.json();
 
-  // Atualiza tabela
   const tbody = document.getElementById('client-list');
   tbody.innerHTML = '';
   clients.forEach(c => {
@@ -201,25 +169,19 @@ async function loadClients() {
       <td>${c.email}</td>
       <td>${c.status}</td>
       <td>
-        <button class="btn btn btn-sm me-2" onclick="giveFeedback(${c.id}, '${c.name}')">Dar Feedback</button>
-        <button class="btn btn btn-sm me-2" onclick="editClient(${c.id}, '${c.name}', '${c.email}', '${c.status}')">Editar</button>
-        <button class="btn btn btn-sm" onclick="deleteClient(${c.id})">Excluir</button>
+        <button class="btn btn-sm me-2" onclick="giveFeedback(${c.id}, '${c.name}')">Dar Feedback</button>
+        <button class="btn btn-sm me-2" onclick="editClient(${c.id}, '${c.name}', '${c.email}', '${c.status}')">Editar</button>
+        <button class="btn btn-sm" onclick="deleteClient(${c.id})">Excluir</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
 
-  // Atualiza gráfico
   updateChart(clients);
 }
 
-
-
-
-
 document.getElementById('client-form').addEventListener('submit', async function(e) {
-  e.preventDefault(); // evita o reload da página
-
+  e.preventDefault();
   const id = document.getElementById('client-id').value;
   const name = this.name.value;
   const email = this.email.value;
@@ -227,11 +189,7 @@ document.getElementById('client-form').addEventListener('submit', async function
 
   let url = '/api/clients';
   let method = 'POST';
-
-  if (id) { // se existe ID, é edição
-    url += `/${id}`;
-    method = 'PUT';
-  }
+  if (id) { url += `/${id}`; method = 'PUT'; }
 
   const res = await fetch(url, {
     method,
@@ -244,39 +202,13 @@ document.getElementById('client-form').addEventListener('submit', async function
     alert('Erro: ' + err.error);
   } else {
     alert('Cliente salvo com sucesso!');
-    this.reset(); // limpa formulário
+    this.reset();
     document.getElementById('client-id').value = '';
-    loadClients(); // recarrega tabela
+    loadClients();
   }
 });
 
-
-// Função para enviar feedback
-async function sendFeedback(client_id, rating, comment, fileInputId) {
-  const inputFile = document.getElementById(fileInputId);
-  let file = null;
-  if (inputFile && inputFile.files.length > 0) {
-    file = inputFile.files[0];
-  }
-
-  const formData = new FormData();
-  formData.append("client_id", client_id);
-  formData.append("rating", rating);
-  formData.append("comment", comment);
-  if (file) formData.append("photo", file);
-
-  const res = await fetch("/api/feedbacks", { method: "POST", body: formData });
-  if (!res.ok) {
-    const err = await res.json();
-    alert("Erro ao registrar feedback: " + err.error);
-  } else {
-    alert("Feedback registrado com sucesso!");
-    loadFeedbacks(); // recarrega a lista
-  }
-}
-
-// Corrigir a exibição das fotos nos feedbacks
-// Corrigir a exibição das fotos nos feedbacks
+// Corrigido: exibe imagem pública do Cloudinary
 async function loadFeedbacks() {
   const res = await fetch("/api/feedbacks");
   if (!res.ok) return;
@@ -287,17 +219,10 @@ async function loadFeedbacks() {
 
   feedbacks.forEach(f => {
     const li = document.createElement('li');
-
-    // Coluna 1: imagem
     const img = document.createElement('img');
-    if (f.photo) {
-  img.src = f.photo; // já é a URL pública (Cloudinary)
-} else {
-  img.src = "https://via.placeholder.com/70x70.png?text=User";
-}
-li.appendChild(img);
+    img.src = f.photo || "https://via.placeholder.com/70x70.png?text=User";
+    li.appendChild(img);
 
-    // Coluna 2: estrela + texto
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('feedback-content');
 
@@ -312,17 +237,12 @@ li.appendChild(img);
   });
 }
 
-// Função para redirecionar ao feedback
 function giveFeedback(id, name) {
   localStorage.setItem('feedbackClientId', id);
   localStorage.setItem('feedbackClientName', name);
   window.location.href = 'feedbacks.html';
 }
 
-
-
-
-// Função Editar
 function editClient(id, name, email, status) {
   document.getElementById('client-id').value = id;
   document.querySelector('input[name="name"]').value = name;
@@ -330,18 +250,13 @@ function editClient(id, name, email, status) {
   document.querySelector('select[name="status"]').value = status;
 }
 
-// Função Excluir
 async function deleteClient(id) {
   if (!confirm('Deseja realmente excluir este cliente?')) return;
   const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' });
-  if (!res.ok) {
-    alert('Erro ao excluir cliente');
-    return;
-  }
+  if (!res.ok) { alert('Erro ao excluir cliente'); return; }
   loadClients();
 }
 
-// Função para atualizar gráfico Chart.js
 function updateChart(clients) {
   const statusCounts = { 'Satisfeito': 0, 'Insatisfeito': 0, 'A melhorar': 0 };
   clients.forEach(c => { statusCounts[c.status] = (statusCounts[c.status] || 0) + 1; });
@@ -356,7 +271,6 @@ function updateChart(clients) {
   };
 
   const ctx = document.getElementById('clientsChart').getContext('2d');
-
   if (clientsChart) {
     clientsChart.data = data;
     clientsChart.update();
@@ -364,18 +278,12 @@ function updateChart(clients) {
     clientsChart = new Chart(ctx, {
       type: 'pie',
       data: data,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
-      }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
   }
 }
 
-// Inicializa a página
 initPage();
 </script>
-
 </body>
 </html>

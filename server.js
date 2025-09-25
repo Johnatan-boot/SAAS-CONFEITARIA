@@ -5,16 +5,13 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const db = require('./database'); // Pool do pg 
 const multer = require('multer');
-const path = require('path');
-
-// >>> IMPORTAÇÕES PARA CLOUDINARY <<<
-const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = 3000;
 
-// ----------------- Upload Config -----------------
+// ----------------- Cloudinary Config -----------------
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -133,14 +130,6 @@ app.post('/api/clients', authMiddleware, async (req, res) => {
 });
 
 // ----------------- FEEDBACKS -----------------
-// Envio com foto para Cloudinary
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
 app.post('/api/feedbacks', authMiddleware, upload.single('photo'), async (req, res) => {
   try {
     const { client_id, rating, comment } = req.body;
@@ -150,23 +139,24 @@ app.post('/api/feedbacks', authMiddleware, upload.single('photo'), async (req, r
 
     let photo = null;
     if (req.file) {
-      // faz upload real pro Cloudinary
-      const result = await cloudinary.uploader.upload(req.file.path);
-      photo = result.secure_url; // <- salva a URL pública
+      // Upload direto para Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "feedbacks"
+      });
+      photo = result.secure_url; // <- salva só a URL pública
     }
 
-    const result = await db.query(
+    const dbResult = await db.query(
       "INSERT INTO feedbacks (client_id, rating, comment, photo) VALUES ($1, $2, $3, $4) RETURNING id",
       [client_id, rating, comment || '', photo]
     );
 
-    res.json({ id: result.rows[0].id, photo });
+    res.json({ id: dbResult.rows[0].id, photo });
   } catch (err) {
     console.error("Erro ao salvar feedback:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // Listar feedbacks
 app.get('/api/feedbacks', authMiddleware, async (req, res) => {
