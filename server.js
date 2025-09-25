@@ -134,7 +134,6 @@ app.post('/api/clients', authMiddleware, async (req, res) => {
 
 // ----------------- FEEDBACKS -----------------
 // Envio com foto para Cloudinary
-const cloudinary = require('cloudinary').v2;
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
