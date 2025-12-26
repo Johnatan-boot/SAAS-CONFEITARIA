@@ -5,6 +5,16 @@ O **SaaS Confeitaria** é uma plataforma desenvolvida para auxiliar confeitarias
 O sistema busca entregar **organização, praticidade e escalabilidade**, permitindo que o confeiteiro foque no que realmente importa: **a produção e venda de seus produtos**.  
 
 ---
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 124301" src="https://github.com/user-attachments/assets/9cf003b4-129a-4e82-af5f-b2ba5e3656f1" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 124242" src="https://github.com/user-attachments/assets/d5de18b6-0bfb-4fec-98db-e2c804705ff4" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 124219" src="https://github.com/user-attachments/assets/9d5d61e5-fc41-4083-adfe-b73842c0b2d9" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 124141" src="https://github.com/user-attachments/assets/84e1d775-2130-458b-9fff-8ab4534875e0" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 124121" src="https://github.com/user-attachments/assets/3668ef21-4b06-415a-9243-ed2169b3564b" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 124106" src="https://github.com/user-attachments/assets/98e4c7ab-dbe3-41db-abf3-cc6bbfe5baa5" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 123945" src="https://github.com/user-attachments/assets/00621137-30f9-47bf-a901-45ec5f34830e" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 123848" src="https://github.com/user-attachments/assets/c144615c-e6b2-4a24-b769-93656f829c0a" />
+<img width="1366" height="768" alt="Captura de tela 2025-12-26 123812" src="https://github.com/user-attachments/assets/27851166-52e8-458e-99cf-4be74b0d4804" />
+
 
 ## 💡 Dores enfrentadas no desenvolvimento  
 - Integração entre **frontend (HTML/JS)** e **backend (Express + SQLite)**.  
