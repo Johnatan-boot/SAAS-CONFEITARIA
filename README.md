@@ -19,7 +19,7 @@
 
 <br />
 
-[![Live Demo v2](https://img.shields.io/badge/🚀%20Live%20Demo%20v2-saas--confeitaria--v20.vercel.app-chocolate?style=for-the-badge)]([https://saas-confeitaria-v20.vercel.app/login](https://saas-confeitaria-v20.vercel.app/login))
+[![Live Demo v2](https://img.shields.io/badge/🚀%20Live%20Demo%20v2-saas--confeitaria--v20.vercel.app-chocolate?style=for-the-badge)]([[https://saas-confeitaria-v20.vercel.app/login]])
 [![Live Demo v1](https://img.shields.io/badge/📦%20Demo%20v1-saas--confeitaria.vercel.app-8B4513?style=for-the-badge)](https://saas-confeitaria.vercel.app/login.html)
 
 </div>
