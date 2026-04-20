@@ -2,12 +2,21 @@ import React, { useEffect, useState } from 'react'
 import { ShoppingBag, Users, Package, TrendingUp, Clock, AlertTriangle, Star, Calendar } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
 import api from '../services/api'
-import { KPIs, RevenueDay, TopProduct, Order } from '../types'
+import { KPIs, RevenueDay, TopProduct, Order, OrderStatus } from '../types'
 import { formatCurrency, formatDate, formatDateTime, ORDER_STATUS_BADGE, ORDER_STATUS_LABELS } from '../utils'
 import { LoadingPage, StatsCard, EmptyState } from '../components/ui'
 import { clsx } from '../utils'
 
 const PIE_COLORS = ['#F59E0B', '#3B82F6', '#8B5CF6', '#10B981', '#6F4F37', '#EF4444']
+
+const STATUS_COLORS: Record<OrderStatus, string> = {
+  pending: '#F59E0B',
+  in_production: '#8B5CF6',
+  confirmed: '#3B82F6',
+  ready: '#10B981',
+  delivered: '#6F4F37',
+  cancelled: '#EF4444',
+}
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
@@ -25,7 +34,7 @@ export default function DashboardPage() {
   const [kpis, setKpis] = useState<KPIs | null>(null)
   const [revenue, setRevenue] = useState<RevenueDay[]>([])
   const [topProducts, setTopProducts] = useState<TopProduct[]>([])
-  const [ordersByStatus, setOrdersByStatus] = useState<any[]>([])
+  const [ordersByStatus, setOrdersByStatus] = useState<{ status: OrderStatus; count: number }[]>([])
   const [upcoming, setUpcoming] = useState<Order[]>([])
   const [topClients, setTopClients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,7 +67,8 @@ export default function DashboardPage() {
   }))
 
   const statusData = ordersByStatus.map(s => ({
-    name: ORDER_STATUS_LABELS[s.status as any] || s.status,
+    name: ORDER_STATUS_LABELS[s.status] || s.status,
+    color: STATUS_COLORS[s.status] || '#6F4F37',
     value: s.count,
   }))
 

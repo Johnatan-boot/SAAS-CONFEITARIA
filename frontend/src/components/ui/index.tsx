@@ -43,8 +43,12 @@ export function Input({ label, error, icon, hint, className = '', ...props }: In
       <div className="relative">
         {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-mocha-400">{icon}</span>}
         <input
-          className={clsx('input', icon && 'pl-10', error && 'border-red-400 focus:ring-red-300', className)}
-          {...props}
+className={clsx(
+  'input',
+  icon ? 'pl-10' : undefined,
+  error ? 'border-red-400 focus:ring-red-300' : undefined,
+  typeof className === 'string' ? className : undefined
+)}          {...props}
         />
       </div>
       {hint && !error && <p className="text-xs text-mocha-400 mt-1">{hint}</p>}
