@@ -1,3 +1,20 @@
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135503" src="https://github.com/user-attachments/assets/645dab9a-11bc-4925-aeb0-b20c11d8b7b3" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135441" src="https://github.com/user-attachments/assets/ad452326-ba24-44fc-ab4a-d15af3643405" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135409" src="https://github.com/user-attachments/assets/c0cf0752-e1d1-4808-82f6-15fec87b382b" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135350" src="https://github.com/user-attachments/assets/c9f11632-7631-488d-8ad6-8a98944b36c3" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135309" src="https://github.com/user-attachments/assets/b43ee041-8600-470c-acc0-053df1e92d3b" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135043" src="https://github.com/user-attachments/assets/2d1f589b-2217-4ea5-b94c-a581d9f5c618" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135032" src="https://github.com/user-attachments/assets/3df5339b-bd07-4ad8-9c3e-8a26673c1bf2" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135018" src="https://github.com/user-attachments/assets/9b2c2e39-dd28-4f06-9ca9-d632fa2013c6" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 135006" src="https://github.com/user-attachments/assets/430f8563-34c8-492f-984d-2f14c84f4858" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134954" src="https://github.com/user-attachments/assets/263c381d-f99b-4240-9298-f22a44e9248c" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134934" src="https://github.com/user-attachments/assets/be8d7ebb-5dc0-43d6-9110-f5edc3ee84f5" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134921" src="https://github.com/user-attachments/assets/280669c7-a0ec-4d2d-bf42-47c371d88e5b" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134903" src="https://github.com/user-attachments/assets/56f8d6f8-63a5-43c2-991a-9fbcb0ebaf70" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134704" src="https://github.com/user-attachments/assets/cc12410f-0afd-4e50-a6bd-112a75a81192" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134516" src="https://github.com/user-attachments/assets/b92eab46-aed6-46de-b9c3-8242e425b931" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134301" src="https://github.com/user-attachments/assets/508194b2-3d69-447d-8efa-bc788d293fe1" />
+<img width="1366" height="768" alt="Captura de tela 2026-04-19 134254" src="https://github.com/user-attachments/assets/18a66423-a322-45ef-b186-36bd7db12173" />
 <div align="center">
 
 <img src="https://img.shields.io/badge/Status-Production%20Ready-556B2F?style=for-the-badge&logo=checkmarx&logoColor=white" />
